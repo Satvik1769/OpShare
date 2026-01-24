@@ -26,6 +26,7 @@ public class Room {
     private LocalDateTime createdAt;
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
+    @Builder.Default
     @Column(name = "active", columnDefinition = "boolean default true")
     private boolean active = true;
 
