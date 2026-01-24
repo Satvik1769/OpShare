@@ -20,20 +20,43 @@ public class Files {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id")
     private Long id;
+
     @Column(name = "created_at")
     private LocalDateTime createdAt;
+
     @Column(name = "room_id")
     private Long roomId;
+
     @Column(name = "file_name")
     private String fileName;
+
     @Column(name = "file_size")
     private BigInteger fileSize;
+
     @Column(name = "status")
     private String status;
+
     @Column(name = "file_path")
     private String filePath;
+
+    @Column(name = "backup_file_path")
+    private String backupFilePath;
+
+    @Column(name = "s3_key_primary")
+    private String s3KeyPrimary;
+
+    @Column(name = "s3_key_backup")
+    private String s3KeyBackup;
+
+    @Column(name = "content_type")
+    private String contentType;
+
     @Column(name = "hash")
     private String hash;
+
     @Column(name = "uploaded_by")
     private Long uploadedBy;
+
+    @Column(name = "updated_at")
+    private LocalDateTime updatedAt;
 }

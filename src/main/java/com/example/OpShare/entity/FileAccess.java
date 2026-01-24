@@ -28,4 +28,10 @@ public class FileAccess {
 
     @Column(name = "accepted_at")
     private LocalDateTime acceptedAt;
+
+    @Column(name = "status")
+    private String status;
+
+    @Column(name = "offered_at")
+    private LocalDateTime offeredAt;
 }
