@@ -155,6 +155,7 @@ public class fileService {
         fileRepository.save(file);
 
         String redisKey = ROOM_PEERS_KEY_PREFIX + request.getRoomId();
+        redisTemplate.opsForSet().remove(redisKey, String.valueOf(userId));
         Set<String> remainingPeers = redisTemplate.opsForSet().members(redisKey);
         // Create file access record
 
