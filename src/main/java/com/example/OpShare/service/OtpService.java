@@ -36,6 +36,8 @@ public class OtpService {
     public boolean verifyOtp(String contactNumber, String otpCode) {
         log.info("Verifying OTP for contact number: {}", contactNumber);
 
+        contactNumber = "+91" + contactNumber;
+
         boolean verified = twilioService.verifyOtp(contactNumber, otpCode);
         if (!verified) {
             log.warn("Invalid OTP for contact number: {}", contactNumber);
