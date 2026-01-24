@@ -9,6 +9,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.security.Principal;
 import java.util.Set;
 
 @RestController
@@ -21,27 +22,30 @@ public class RoomController {
     private final roomService roomService;
 
     @PostMapping
-    public ResponseEntity<RoomResponse> createRoom(@RequestBody CreateRoomRequest request) {
+    public ResponseEntity<RoomResponse> createRoom(Principal principal) {
         log.error("Received request to create room");
-        RoomResponse response = roomService.createRoom(request);
+        Long userId = Long.parseLong(principal.getName());
+        RoomResponse response = roomService.createRoom(userId);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
     @PostMapping("/{roomId}/join")
     public ResponseEntity<RoomResponse> joinRoom(
             @PathVariable Long roomId,
-            @RequestBody JoinRoomRequest request) {
+            Principal principal) {
         log.error("Received request to join room {}", roomId);
-        RoomResponse response = roomService.joinRoom(roomId, request);
+        Long userId = Long.parseLong(principal.getName());
+        RoomResponse response = roomService.joinRoom(roomId, userId);
         return ResponseEntity.ok(response);
     }
 
     @PostMapping("/{roomId}/leave")
     public ResponseEntity<RoomResponse> leaveRoom(
             @PathVariable Long roomId,
-            @RequestBody LeaveRoomRequest request) {
+            Principal principal) {
         log.error("Received request to leave room {}", roomId);
-        RoomResponse response = roomService.leaveRoom(roomId, request);
+        Long userId = Long.parseLong(principal.getName());
+        RoomResponse response = roomService.leaveRoom(roomId, userId);
         return ResponseEntity.ok(response);
     }
 

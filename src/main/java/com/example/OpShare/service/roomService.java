@@ -1,7 +1,9 @@
 package com.example.OpShare.service;
 
 import com.example.OpShare.dto.*;
+import com.example.OpShare.entity.Peer;
 import com.example.OpShare.entity.Room;
+import com.example.OpShare.repository.peerRepository;
 import com.example.OpShare.repository.roomRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -11,6 +13,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.Optional;
 import java.util.Set;
 
 @Service
@@ -23,13 +26,14 @@ public class roomService {
     private final SimpMessagingTemplate messagingTemplate;
 
     private static final String ROOM_PEERS_KEY_PREFIX = "room:peers:";
+    private final peerRepository peerRepository;
 
     @Transactional
-    public RoomResponse createRoom(CreateRoomRequest request) {
-        log.error("Creating room for user: {}", request.getCreatedBy());
+    public RoomResponse createRoom(Long userId) {
+        log.error("Creating room for user: {}", userId);
 
         Room room = Room.builder()
-                .createdBy(request.getCreatedBy())
+                .createdBy(userId)
                 .createdAt(LocalDateTime.now())
                 .updatedAt(LocalDateTime.now())
                 .active(true)
@@ -39,7 +43,7 @@ public class roomService {
 
         // Add creator as first peer in Redis set
         String redisKey = ROOM_PEERS_KEY_PREFIX + savedRoom.getId();
-        redisTemplate.opsForSet().add(redisKey, String.valueOf(request.getCreatedBy()));
+        redisTemplate.opsForSet().add(redisKey, String.valueOf(userId));
 
         log.error("Room created with ID: {}", savedRoom.getId());
 
@@ -48,13 +52,21 @@ public class roomService {
                 .createdBy(savedRoom.getCreatedBy())
                 .createdAt(savedRoom.getCreatedAt())
                 .active(savedRoom.isActive())
-                .peers(Set.of(String.valueOf(request.getCreatedBy())))
+                .peers(Set.of(String.valueOf(userId)))
                 .message("Room created successfully")
                 .build();
     }
 
     @Transactional
-    public RoomResponse joinRoom(Long roomId, JoinRoomRequest request) {
+    public RoomResponse joinRoom(Long roomId, Long userId) {
+
+        Optional<Peer> peer = peerRepository.findById(userId);
+        if (peer.isEmpty()) {
+            throw new RuntimeException("Peer not found with ID: " + userId);
+        }
+
+        JoinRoomRequest request = new JoinRoomRequest(userId, peer.get().getName());
+
         log.error("Peer {} joining room {}", request.getPeerId(), roomId);
 
         Room room = roomRepository.findById(roomId)
@@ -98,15 +110,15 @@ public class roomService {
     }
 
     @Transactional
-    public RoomResponse leaveRoom(Long roomId, LeaveRoomRequest request) {
-        log.error("Peer {} leaving room {}", request.getPeerId(), roomId);
+    public RoomResponse leaveRoom(Long roomId, Long userId) {
+        log.error("Peer {} leaving room {}", userId, roomId);
 
         Room room = roomRepository.findById(roomId)
                 .orElseThrow(() -> new RuntimeException("Room not found with ID: " + roomId));
 
         // Remove peer from Redis set
         String redisKey = ROOM_PEERS_KEY_PREFIX + roomId;
-        redisTemplate.opsForSet().remove(redisKey, String.valueOf(request.getPeerId()));
+        redisTemplate.opsForSet().remove(redisKey, String.valueOf(userId));
 
         // Get remaining peers
         Set<String> remainingPeers = redisTemplate.opsForSet().members(redisKey);
@@ -115,12 +127,12 @@ public class roomService {
         RoomEvent event = RoomEvent.builder()
                 .eventType("USER_LEFT")
                 .roomId(roomId)
-                .peerId(request.getPeerId())
+                .peerId(userId)
                 .timestamp(LocalDateTime.now())
                 .build();
 
         messagingTemplate.convertAndSend("/topic/room/" + roomId, event);
-        log.error("Broadcasted USER_LEFT event for peer {} in room {}", request.getPeerId(), roomId);
+        log.error("Broadcasted USER_LEFT event for peer {} in room {}", userId, roomId);
 
         // Check if room is empty and cleanup
         if (remainingPeers == null || remainingPeers.isEmpty()) {
