@@ -13,5 +13,4 @@ public interface fileRepository extends JpaRepository<Files, Long> {
 
     List<Files> findByRoomIdAndStatus(Long roomId, String status);
 
-    List<Files> findByOfferedToAndStatus(Long offeredTo, String status);
 }
