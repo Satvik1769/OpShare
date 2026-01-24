@@ -18,7 +18,6 @@ public class FileOfferResponse {
     private BigInteger fileSize;
     private String contentType;
     private Long offeredBy;
-    private Long offeredTo;
     private String status;
     private LocalDateTime offeredAt;
     private String message;

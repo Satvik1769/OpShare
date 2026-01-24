@@ -11,5 +11,5 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class OfferFileRequest {
     private Long fileId;
-    private Long targetUserId;
+    private Long roomId;
 }

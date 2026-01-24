@@ -10,6 +10,7 @@ import com.example.OpShare.repository.roomRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -29,7 +30,9 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.time.Duration;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 @Service
@@ -49,6 +52,9 @@ public class fileService {
 
     @Value("${aws.s3.presigned-url-expiration-minutes}")
     private int presignedUrlExpirationMinutes;
+    private final RedisTemplate<String, String> redisTemplate;
+
+    private static final String ROOM_PEERS_KEY_PREFIX = "room:peers:";
 
     private static final String STATUS_UPLOADED = "UPLOADED";
     private static final String STATUS_OFFERED = "OFFERED";
@@ -134,7 +140,7 @@ public class fileService {
 
     @Transactional
     public FileOfferResponse offerFile(Long userId, OfferFileRequest request) {
-        log.error("User {} offering file {} to user {}", userId, request.getFileId(), request.getTargetUserId());
+        log.error("User {} offering file {} to room {}", userId, request.getFileId(), request.getRoomId());
 
         Files file = fileRepository.findById(request.getFileId())
                 .orElseThrow(() -> new RuntimeException("File not found with ID: " + request.getFileId()));
@@ -148,29 +154,41 @@ public class fileService {
         file.setUpdatedAt(LocalDateTime.now());
         fileRepository.save(file);
 
+        String redisKey = ROOM_PEERS_KEY_PREFIX + request.getRoomId();
+        Set<String> remainingPeers = redisTemplate.opsForSet().members(redisKey);
         // Create file access record
-        FileAccess fileAccess = FileAccess.builder()
-                .fileId(file.getId())
-                .userId(request.getTargetUserId())
-                .status(STATUS_PENDING)
-                .offeredAt(LocalDateTime.now())
-                .build();
 
-        fileAccessRepository.save(fileAccess);
+        List<FileAccess> fileAccessList = new ArrayList<>();
 
-        // Broadcast FILE_OFFERED event
-        FileEvent event = FileEvent.builder()
-                .eventType("FILE_OFFERED")
-                .fileId(file.getId())
-                .fileName(file.getFileName())
-                .fileSize(file.getFileSize())
-                .roomId(file.getRoomId())
-                .fromUserId(userId)
-                .toUserId(request.getTargetUserId())
-                .timestamp(LocalDateTime.now())
-                .build();
+        for (String peerId : remainingPeers) {
 
-        messagingTemplate.convertAndSend("/topic/room/" + file.getRoomId(), event);
+            FileAccess fileAccess = FileAccess.builder()
+                    .fileId(file.getId())
+                    .userId(Long.parseLong(peerId))
+                    .status(STATUS_PENDING)
+                    .offeredAt(LocalDateTime.now())
+                    .build();
+            fileAccessList.add(fileAccess);
+
+            // Broadcast FILE_OFFERED event
+            FileEvent event = FileEvent.builder()
+                    .eventType("FILE_OFFERED")
+                    .fileId(file.getId())
+                    .fileName(file.getFileName())
+                    .fileSize(file.getFileSize())
+                    .roomId(file.getRoomId())
+                    .fromUserId(userId)
+                    .toUserId(Long.parseLong(peerId))
+                    .timestamp(LocalDateTime.now())
+                    .build();
+
+            messagingTemplate.convertAndSend("/topic/room/" + file.getRoomId(), event);
+        }
+
+
+        fileAccessRepository.saveAll(fileAccessList);
+
+
 
         return FileOfferResponse.builder()
                 .fileId(file.getId())
@@ -178,9 +196,8 @@ public class fileService {
                 .fileSize(file.getFileSize())
                 .contentType(file.getContentType())
                 .offeredBy(userId)
-                .offeredTo(request.getTargetUserId())
                 .status(STATUS_OFFERED)
-                .offeredAt(fileAccess.getOfferedAt())
+                .offeredAt(LocalDateTime.now())
                 .message("File offered successfully")
                 .build();
     }
@@ -229,7 +246,6 @@ public class fileService {
                 .fileSize(file.getFileSize())
                 .contentType(file.getContentType())
                 .offeredBy(file.getUploadedBy())
-                .offeredTo(userId)
                 .status(STATUS_ACCEPTED)
                 .offeredAt(fileAccess.getOfferedAt())
                 .message("File accepted successfully")
@@ -279,7 +295,6 @@ public class fileService {
                 .fileSize(file.getFileSize())
                 .contentType(file.getContentType())
                 .offeredBy(file.getUploadedBy())
-                .offeredTo(userId)
                 .status(STATUS_REJECTED)
                 .offeredAt(fileAccess.getOfferedAt())
                 .message("File rejected")
