@@ -13,34 +13,31 @@ import java.time.LocalDateTime;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Table(name = "peer")
-public class Peer {
+@Table(name = "otp")
+public class Otp {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id")
     private Long id;
 
-    @Column(name = "ip")
-    private String ip;
-
-    @Column(name = "name")
-    private String name;
-
-    @Column(name = "contact_number", unique = true, nullable = false)
+    @Column(name = "contact_number", nullable = false)
     private String contactNumber;
 
-    @Column(name = "verified")
-    private boolean verified;
-
-    @Column(name = "active")
-    private boolean active;
+    @Column(name = "otp_code", nullable = false)
+    private String otpCode;
 
     @Column(name = "created_at")
     private LocalDateTime createdAt;
 
-    @Column(name = "updated_at")
-    private LocalDateTime updatedAt;
+    @Column(name = "expires_at")
+    private LocalDateTime expiresAt;
 
-    @Column(name = "last_seen")
-    private LocalDateTime lastSeen;
+    @Column(name = "verified")
+    private boolean verified;
+
+    @Column(name = "attempts")
+    private int attempts;
+
+    @Column(name = "purpose")
+    private String purpose;
 }
