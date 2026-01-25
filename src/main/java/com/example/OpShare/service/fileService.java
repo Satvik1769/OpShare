@@ -3,10 +3,14 @@ package com.example.OpShare.service;
 import com.example.OpShare.dto.*;
 import com.example.OpShare.entity.FileAccess;
 import com.example.OpShare.entity.Files;
+import com.example.OpShare.entity.Peer;
 import com.example.OpShare.entity.Room;
+import com.example.OpShare.entity.TransferHistory;
 import com.example.OpShare.repository.fileAccessRepository;
 import com.example.OpShare.repository.fileRepository;
+import com.example.OpShare.repository.peerRepository;
 import com.example.OpShare.repository.roomRepository;
+import com.example.OpShare.repository.TransferHistoryRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -45,6 +49,8 @@ public class fileService {
     private final fileRepository fileRepository;
     private final fileAccessRepository fileAccessRepository;
     private final roomRepository roomRepository;
+    private final peerRepository peerRepository;
+    private final TransferHistoryRepository transferHistoryRepository;
     private final SimpMessagingTemplate messagingTemplate;
 
     @Value("${aws.s3.bucket-name}")
@@ -160,16 +166,68 @@ public class fileService {
         // Create file access record
 
         List<FileAccess> fileAccessList = new ArrayList<>();
+        int totalPeers = remainingPeers.size();
+
+        // Get sender's name
+        String senderName = peerRepository.findById(userId)
+                .map(Peer::getName)
+                .orElse("Unknown");
 
         for (String peerId : remainingPeers) {
+            Long peerIdLong = Long.parseLong(peerId);
 
             FileAccess fileAccess = FileAccess.builder()
                     .fileId(file.getId())
-                    .userId(Long.parseLong(peerId))
+                    .userId(peerIdLong)
                     .status(STATUS_PENDING)
                     .offeredAt(LocalDateTime.now())
                     .build();
             fileAccessList.add(fileAccess);
+
+            // Get peer's name
+            String peerName = peerRepository.findById(peerIdLong)
+                    .map(Peer::getName)
+                    .orElse("Unknown");
+
+            // Create transfer history for sender (SENT direction)
+            TransferHistory senderHistory = TransferHistory.builder()
+                    .roomId(file.getRoomId())
+                    .fileId(file.getId())
+                    .fileName(file.getFileName())
+                    .fileSize(file.getFileSize())
+                    .contentType(file.getContentType())
+                    .userId(userId)
+                    .peerId(peerIdLong)
+                    .peerName(peerName)
+                    .totalPeers(totalPeers)
+                    .direction("SENT")
+                    .status(STATUS_PENDING)
+                    .progressPercentage(0)
+                    .startedAt(LocalDateTime.now())
+                    .createdAt(LocalDateTime.now())
+                    .updatedAt(LocalDateTime.now())
+                    .build();
+            transferHistoryRepository.save(senderHistory);
+
+            // Create transfer history for receiver (RECEIVED direction)
+            TransferHistory receiverHistory = TransferHistory.builder()
+                    .roomId(file.getRoomId())
+                    .fileId(file.getId())
+                    .fileName(file.getFileName())
+                    .fileSize(file.getFileSize())
+                    .contentType(file.getContentType())
+                    .userId(peerIdLong)
+                    .peerId(userId)
+                    .peerName(senderName)
+                    .totalPeers(1)
+                    .direction("RECEIVED")
+                    .status(STATUS_PENDING)
+                    .progressPercentage(0)
+                    .startedAt(LocalDateTime.now())
+                    .createdAt(LocalDateTime.now())
+                    .updatedAt(LocalDateTime.now())
+                    .build();
+            transferHistoryRepository.save(receiverHistory);
 
             // Broadcast FILE_OFFERED event
             FileEvent event = FileEvent.builder()
@@ -179,7 +237,7 @@ public class fileService {
                     .fileSize(file.getFileSize())
                     .roomId(file.getRoomId())
                     .fromUserId(userId)
-                    .toUserId(Long.parseLong(peerId))
+                    .toUserId(peerIdLong)
                     .timestamp(LocalDateTime.now())
                     .build();
 
@@ -226,6 +284,28 @@ public class fileService {
         file.setStatus(STATUS_ACCEPTED);
         file.setUpdatedAt(LocalDateTime.now());
         fileRepository.save(file);
+
+        // Update transfer history for receiver
+        transferHistoryRepository.findByFileIdAndUserId(fileId, userId)
+                .ifPresent(history -> {
+                    history.setStatus(STATUS_ACCEPTED);
+                    history.setProgressPercentage(100);
+                    history.setBytesTransferred(file.getFileSize());
+                    history.setCompletedAt(LocalDateTime.now());
+                    history.setUpdatedAt(LocalDateTime.now());
+                    transferHistoryRepository.save(history);
+                });
+
+        // Update transfer history for sender
+        transferHistoryRepository.findByFileIdAndUserIdAndPeerId(fileId, file.getUploadedBy(), userId)
+                .ifPresent(history -> {
+                    history.setStatus(STATUS_ACCEPTED);
+                    history.setProgressPercentage(100);
+                    history.setBytesTransferred(file.getFileSize());
+                    history.setCompletedAt(LocalDateTime.now());
+                    history.setUpdatedAt(LocalDateTime.now());
+                    transferHistoryRepository.save(history);
+                });
 
         // Broadcast FILE_ACCEPTED event
         FileEvent event = FileEvent.builder()
@@ -275,6 +355,26 @@ public class fileService {
         file.setStatus(STATUS_UPLOADED);
         file.setUpdatedAt(LocalDateTime.now());
         fileRepository.save(file);
+
+        // Update transfer history for receiver (mark as ABORTED)
+        transferHistoryRepository.findByFileIdAndUserId(fileId, userId)
+                .ifPresent(history -> {
+                    history.setStatus("ABORTED");
+                    history.setErrorReason("File rejected by recipient");
+                    history.setCompletedAt(LocalDateTime.now());
+                    history.setUpdatedAt(LocalDateTime.now());
+                    transferHistoryRepository.save(history);
+                });
+
+        // Update transfer history for sender (mark as ABORTED)
+        transferHistoryRepository.findByFileIdAndUserIdAndPeerId(fileId, file.getUploadedBy(), userId)
+                .ifPresent(history -> {
+                    history.setStatus("ABORTED");
+                    history.setErrorReason("File rejected by recipient");
+                    history.setCompletedAt(LocalDateTime.now());
+                    history.setUpdatedAt(LocalDateTime.now());
+                    transferHistoryRepository.save(history);
+                });
 
         // Broadcast FILE_REJECTED event
         FileEvent event = FileEvent.builder()
