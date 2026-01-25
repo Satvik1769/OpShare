@@ -5,6 +5,8 @@ import com.example.OpShare.entity.Peer;
 import com.example.OpShare.entity.PeerDeviceLogin;
 import com.example.OpShare.repository.peerDeviceLoginRepository;
 import com.example.OpShare.repository.peerRepository;
+import io.micrometer.common.util.StringUtils;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -36,7 +38,7 @@ public class AuthService {
     }
 
     @Transactional
-    public AuthResponse verifyOtpAndLogin(VerifyOtpRequest request) {
+    public AuthResponse verifyOtpAndLogin(VerifyOtpRequest request, HttpServletRequest httpServletRequest) {
         log.error("Verifying OTP and logging in for contact: {}", request.getContactNumber());
 
         // Verify OTP
@@ -45,6 +47,8 @@ public class AuthService {
         // Check if peer exists
         Optional<Peer> existingPeer = peerRepository.findByContactNumber(request.getContactNumber());
         boolean isNewUser = existingPeer.isEmpty();
+
+        String ipAddress = getIpFromRequest(httpServletRequest);
 
         Peer peer;
         if (isNewUser) {
@@ -57,12 +61,14 @@ public class AuthService {
                     .createdAt(LocalDateTime.now())
                     .updatedAt(LocalDateTime.now())
                     .lastSeen(LocalDateTime.now())
+                    .ip(ipAddress)
                     .build();
             peer = peerRepository.save(peer);
             log.error("Created new peer with ID: {}", peer.getId());
         } else {
             peer = existingPeer.get();
             peer.setVerified(true);
+            peer.setIp(ipAddress);
             peer.setActive(true);
             peer.setLastSeen(LocalDateTime.now());
             peer.setUpdatedAt(LocalDateTime.now());
@@ -196,5 +202,23 @@ public class AuthService {
                 .createdAt(device.getCreatedAt())
                 .lastLogin(device.getLastLogin())
                 .build();
+    }
+
+    private String getIpFromRequest(HttpServletRequest httpServletRequest) {
+        String userIp = null;
+        try{
+            if (httpServletRequest != null && httpServletRequest.getHeader("X-FORWARDED-FOR") != null && !httpServletRequest.getHeader("X-FORWARDED-FOR").isEmpty()) {
+                userIp = httpServletRequest.getHeader("X-FORWARDED-FOR");
+                if (StringUtils.isNotEmpty(userIp) && userIp.split(",").length > 1) {
+                    userIp = userIp.split(",")[0];
+                }
+            } else if(httpServletRequest != null) {
+                userIp = httpServletRequest.getRemoteAddr();
+            }
+        }catch (Exception e){
+            userIp = "192.168.1.1";
+            log.error(e.getMessage(),e);
+        }
+        return userIp;
     }
 }

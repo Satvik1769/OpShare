@@ -2,6 +2,7 @@ package com.example.OpShare.controller;
 
 import com.example.OpShare.dto.*;
 import com.example.OpShare.service.AuthService;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -29,9 +30,9 @@ public class AuthController {
     }
 
     @PostMapping("/verify-otp")
-    public ResponseEntity<AuthResponse> verifyOtp(@RequestBody VerifyOtpRequest request) {
+    public ResponseEntity<AuthResponse> verifyOtp(@RequestBody VerifyOtpRequest request, HttpServletRequest httpServletRequest) {
         log.error("Received OTP verification request for contact: {}", request.getContactNumber());
-        AuthResponse response = authService.verifyOtpAndLogin(request);
+        AuthResponse response = authService.verifyOtpAndLogin(request, httpServletRequest);
         return ResponseEntity.ok(response);
     }
 
