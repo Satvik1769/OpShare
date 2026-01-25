@@ -28,7 +28,7 @@ public class ChunkedUploadController {
     public ResponseEntity<InitUploadResponse> initializeUpload(
             @RequestBody InitUploadRequest request,
             Principal principal) {
-        log.info("Received upload init request for file: {}", request.getFileName());
+        log.error("Received upload init request for file: {}", request.getFileName());
         Long userId = Long.parseLong(principal.getName());
         InitUploadResponse response = chunkedUploadService.initializeUpload(userId, request);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
@@ -39,7 +39,7 @@ public class ChunkedUploadController {
             @PathVariable String uploadId,
             @PathVariable Integer chunkNumber,
             @RequestParam("chunk") MultipartFile chunk) throws IOException {
-        log.info("Received chunk {} for upload: {}", chunkNumber, uploadId);
+        log.error("Received chunk {} for upload: {}", chunkNumber, uploadId);
         ChunkUploadResponse response = chunkedUploadService.uploadChunk(uploadId, chunkNumber, chunk);
         return ResponseEntity.ok(response);
     }
@@ -47,7 +47,7 @@ public class ChunkedUploadController {
     @PostMapping("/{uploadId}/complete")
     public ResponseEntity<CompleteUploadResponse> completeUpload(
             @PathVariable String uploadId) throws IOException {
-        log.info("Received complete request for upload: {}", uploadId);
+        log.error("Received complete request for upload: {}", uploadId);
         CompleteUploadResponse response = chunkedUploadService.completeUpload(uploadId);
         return ResponseEntity.ok(response);
     }
@@ -55,7 +55,7 @@ public class ChunkedUploadController {
     @GetMapping("/{uploadId}/progress")
     public ResponseEntity<UploadProgressResponse> getProgress(
             @PathVariable String uploadId) {
-        log.info("Received progress request for upload: {}", uploadId);
+        log.error("Received progress request for upload: {}", uploadId);
         UploadProgressResponse response = chunkedUploadService.getUploadProgress(uploadId);
         return ResponseEntity.ok(response);
     }
@@ -63,7 +63,7 @@ public class ChunkedUploadController {
     @DeleteMapping("/{uploadId}")
     public ResponseEntity<Map<String, String>> cancelUpload(
             @PathVariable String uploadId) {
-        log.info("Received cancel request for upload: {}", uploadId);
+        log.error("Received cancel request for upload: {}", uploadId);
         chunkedUploadService.cancelUpload(uploadId);
         return ResponseEntity.ok(Map.of("message", "Upload cancelled"));
     }
@@ -72,7 +72,7 @@ public class ChunkedUploadController {
     public ResponseEntity<Map<String, Object>> checkDuplicate(
             @RequestParam String fileHash,
             @RequestParam Long roomId) {
-        log.info("Checking duplicate for hash: {} in room: {}", fileHash, roomId);
+        log.error("Checking duplicate for hash: {} in room: {}", fileHash, roomId);
         boolean exists = chunkedUploadService.checkDuplicate(fileHash, roomId);
         return ResponseEntity.ok(Map.of(
                 "exists", exists,

@@ -32,7 +32,7 @@ public class TwilioService {
     private static final String TWILIO_VERIFY_URL = "https://verify.twilio.com/v2/Services";
 
     public boolean sendOtp(String phoneNumber) {
-        log.info("Sending OTP to phone number: {}", phoneNumber);
+        log.error("Sending OTP to phone number: {}", phoneNumber);
 
         try {
             String url = TWILIO_VERIFY_URL + "/" + verifyServiceSid + "/Verifications";
@@ -51,7 +51,7 @@ public class TwilioService {
             if (response.getStatusCode().is2xxSuccessful()) {
                 Map responseBody = response.getBody();
                 String status = responseBody != null ? (String) responseBody.get("status") : null;
-                log.info("OTP sent successfully to {}. Status: {}", phoneNumber, status);
+                log.error("OTP sent successfully to {}. Status: {}", phoneNumber, status);
                 return "pending".equals(status);
             } else {
                 log.error("Failed to send OTP. Status: {}", response.getStatusCode());
@@ -64,7 +64,7 @@ public class TwilioService {
     }
 
     public boolean verifyOtp(String phoneNumber, String code) {
-        log.info("Verifying OTP for phone number: {}", phoneNumber);
+        log.error("Verifying OTP for phone number: {}", phoneNumber);
 
         try {
             String url = TWILIO_VERIFY_URL + "/" + verifyServiceSid + "/VerificationCheck";
@@ -83,7 +83,7 @@ public class TwilioService {
             if (response.getStatusCode().is2xxSuccessful()) {
                 Map responseBody = response.getBody();
                 String status = responseBody != null ? (String) responseBody.get("status") : null;
-                log.info("OTP verification for {}. Status: {}", phoneNumber, status);
+                log.error("OTP verification for {}. Status: {}", phoneNumber, status);
                 return "approved".equals(status);
             } else {
                 log.error("OTP verification failed. Status: {}", response.getStatusCode());

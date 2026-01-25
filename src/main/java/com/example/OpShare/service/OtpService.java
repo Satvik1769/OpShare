@@ -17,7 +17,7 @@ public class OtpService {
 
     public OtpResponse sendOtp(SendOtpRequest request, String purpose) {
         String contactNumber = request.getContactNumber();
-        log.info("Sending OTP for contact number: {} (purpose: {})", contactNumber, purpose);
+        log.error("Sending OTP for contact number: {} (purpose: {})", contactNumber, purpose);
 
         boolean sent = twilioService.sendOtp(contactNumber);
         if (!sent) {
@@ -34,7 +34,7 @@ public class OtpService {
     }
 
     public boolean verifyOtp(String contactNumber, String otpCode) {
-        log.info("Verifying OTP for contact number: {}", contactNumber);
+        log.error("Verifying OTP for contact number: {}", contactNumber);
 
         contactNumber = "+91" + contactNumber;
 
@@ -44,7 +44,7 @@ public class OtpService {
             throw new RuntimeException("Invalid OTP. Please try again.");
         }
 
-        log.info("OTP verified successfully for contact number: {}", contactNumber);
+        log.error("OTP verified successfully for contact number: {}", contactNumber);
         return true;
     }
 }

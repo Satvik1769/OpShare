@@ -34,7 +34,7 @@ public class PeerService {
 
     @Transactional
     public PeerResponse updatePeer(Long peerId, UpdatePeerRequest request) {
-        log.info("Updating peer ID: {}", peerId);
+        log.error("Updating peer ID: {}", peerId);
 
         Peer peer = peerRepository.findById(peerId)
                 .orElseThrow(() -> new RuntimeException("Peer not found with ID: " + peerId));
@@ -46,7 +46,7 @@ public class PeerService {
         peer.setUpdatedAt(LocalDateTime.now());
         peerRepository.save(peer);
 
-        log.info("Peer updated successfully: {}", peerId);
+        log.error("Peer updated successfully: {}", peerId);
         return toPeerResponse(peer, "Peer updated successfully");
     }
 
@@ -67,7 +67,7 @@ public class PeerService {
         peer.setUpdatedAt(LocalDateTime.now());
         peerRepository.save(peer);
 
-        log.info("Peer deactivated: {}", peerId);
+        log.error("Peer deactivated: {}", peerId);
     }
 
     public boolean existsByContactNumber(String contactNumber) {

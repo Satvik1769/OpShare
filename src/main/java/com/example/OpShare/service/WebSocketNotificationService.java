@@ -39,7 +39,7 @@ public class WebSocketNotificationService {
 
         broadcastToRoom(session.getRoomId(), event);
         broadcastToUpload(session.getUploadId(), event);
-        log.info("Pushed UPLOAD_STARTED event for upload: {}", session.getUploadId());
+        log.error("Pushed UPLOAD_STARTED event for upload: {}", session.getUploadId());
     }
 
     public void notifyUploadProgress(FileUploadSession session, double progressPercent) {
@@ -81,7 +81,7 @@ public class WebSocketNotificationService {
 
         broadcastToRoom(session.getRoomId(), event);
         broadcastToUpload(session.getUploadId(), event);
-        log.info("Pushed UPLOAD_COMPLETED event for file: {}", file.getId());
+        log.error("Pushed UPLOAD_COMPLETED event for file: {}", file.getId());
     }
 
     public void notifyUploadFailed(FileUploadSession session, String error) {
@@ -118,7 +118,7 @@ public class WebSocketNotificationService {
 
         broadcastToRoom(session.getRoomId(), event);
         broadcastToUpload(session.getUploadId(), event);
-        log.info("Pushed UPLOAD_CANCELLED event for upload: {}", session.getUploadId());
+        log.error("Pushed UPLOAD_CANCELLED event for upload: {}", session.getUploadId());
     }
 
     public void notifyFileDeduplicated(Long roomId, Long userId, Long existingFileId, String fileName) {
@@ -133,7 +133,7 @@ public class WebSocketNotificationService {
                 .build();
 
         broadcastToRoom(roomId, event);
-        log.info("Pushed FILE_DEDUPLICATED event for file: {}", existingFileId);
+        log.error("Pushed FILE_DEDUPLICATED event for file: {}", existingFileId);
     }
 
     // File Events

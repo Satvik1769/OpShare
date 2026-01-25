@@ -19,7 +19,7 @@ public class WebSocketController {
     public void subscribeToRoom(@Payload SubscribeRequest request, Principal principal, SimpMessageHeaderAccessor headerAccessor) {
         if (principal != null) {
             String sessionId = headerAccessor.getSessionId();
-            log.info("User {} subscribed to room {} (session: {})", principal.getName(), request.getRoomId(), sessionId);
+            log.error("User {} subscribed to room {} (session: {})", principal.getName(), request.getRoomId(), sessionId);
         }
     }
 
@@ -27,7 +27,7 @@ public class WebSocketController {
     public void subscribeToUpload(@Payload SubscribeRequest request, Principal principal, SimpMessageHeaderAccessor headerAccessor) {
         if (principal != null) {
             String sessionId = headerAccessor.getSessionId();
-            log.info("User {} subscribed to upload {} (session: {})", principal.getName(), request.getUploadId(), sessionId);
+            log.error("User {} subscribed to upload {} (session: {})", principal.getName(), request.getUploadId(), sessionId);
         }
     }
 

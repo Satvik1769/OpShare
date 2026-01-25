@@ -23,7 +23,7 @@ public class PeerController {
 
     @GetMapping("/me")
     public ResponseEntity<PeerResponse> getCurrentPeer(Principal principal) {
-        log.info("Received get current peer request");
+        log.error("Received get current peer request");
         Long userId = Long.parseLong(principal.getName());
         PeerResponse response = peerService.getPeer(userId);
         return ResponseEntity.ok(response);
@@ -31,7 +31,7 @@ public class PeerController {
 
     @GetMapping("/{peerId}")
     public ResponseEntity<PeerResponse> getPeer(@PathVariable Long peerId) {
-        log.info("Received get peer request for ID: {}", peerId);
+        log.error("Received get peer request for ID: {}", peerId);
         PeerResponse response = peerService.getPeer(peerId);
         return ResponseEntity.ok(response);
     }
@@ -40,7 +40,7 @@ public class PeerController {
     public ResponseEntity<PeerResponse> updateCurrentPeer(
             @RequestBody UpdatePeerRequest request,
             Principal principal) {
-        log.info("Received update peer request");
+        log.error("Received update peer request");
         Long userId = Long.parseLong(principal.getName());
         PeerResponse response = peerService.updatePeer(userId, request);
         return ResponseEntity.ok(response);
@@ -55,7 +55,7 @@ public class PeerController {
 
     @DeleteMapping("/me")
     public ResponseEntity<Map<String, String>> deactivateAccount(Principal principal) {
-        log.info("Received deactivate account request");
+        log.error("Received deactivate account request");
         Long userId = Long.parseLong(principal.getName());
         peerService.deactivatePeer(userId);
         return ResponseEntity.ok(Map.of("message", "Account deactivated successfully"));
