@@ -18,6 +18,7 @@ public class OtpService {
     public OtpResponse sendOtp(SendOtpRequest request, String purpose) {
         String contactNumber = request.getContactNumber();
         log.error("Sending OTP for contact number: {} (purpose: {})", contactNumber, purpose);
+        contactNumber = "+91" + contactNumber;
 
         boolean sent = twilioService.sendOtp(contactNumber);
         if (!sent) {
