@@ -70,10 +70,11 @@ public class PeerController {
     }
 
     @GetMapping("/same-network")
-    public ResponseEntity<List<PeerResponse>> getActivePeersOnSameNetwork(HttpServletRequest request) {
+    public ResponseEntity<List<PeerResponse>> getActivePeersOnSameNetwork(HttpServletRequest request, Principal principal) {
         String ip = peerService.resolveClientIp(request);
+        Long userId = Long.parseLong(principal.getName());
         log.info("Fetching active peers for IP: {}", ip);
-        List<PeerResponse> peers = peerService.getActivePeersByIp(ip);
+        List<PeerResponse> peers = peerService.getActivePeersByIp(ip, userId);
         return ResponseEntity.ok(peers);
     }
 }

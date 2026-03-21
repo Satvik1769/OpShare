@@ -12,6 +12,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Objects;
 
 @Service
 @RequiredArgsConstructor
@@ -85,9 +86,10 @@ public class PeerService {
         });
     }
 
-    public List<PeerResponse> getActivePeersByIp(String ip) {
+    public List<PeerResponse> getActivePeersByIp(String ip, Long userId) {
         return peerRepository.findByIpAndActiveTrue(ip).stream()
                 .map(peer -> toPeerResponse(peer, null))
+                .filter(peer -> !Objects.equals(peer.getId(), userId))
                 .toList();
     }
 
