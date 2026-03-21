@@ -2,15 +2,19 @@ package com.example.OpShare.controller;
 
 import com.example.OpShare.dto.SignalMessage;
 import com.example.OpShare.dto.SubscribeRequest;
+import com.example.OpShare.service.PeerService;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.event.EventListener;
 import org.springframework.messaging.handler.annotation.DestinationVariable;
 import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.messaging.simp.SimpMessageHeaderAccessor;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
+import org.springframework.messaging.simp.stomp.StompHeaderAccessor;
 import org.springframework.stereotype.Controller;
+import org.springframework.web.socket.messaging.SessionDisconnectEvent;
 
 import java.security.Principal;
 
@@ -21,6 +25,18 @@ public class WebSocketController {
 
     @NonNull
     private final SimpMessagingTemplate messagingTemplate;
+    private final PeerService peerService;
+
+    @EventListener
+    public void handleDisconnect(SessionDisconnectEvent event) {
+        StompHeaderAccessor accessor = StompHeaderAccessor.wrap(event.getMessage());
+        Principal user = accessor.getUser();
+        if (user != null) {
+            Long userId = Long.parseLong(user.getName());
+            peerService.setInactive(userId);
+            log.info("Peer {} marked inactive on WebSocket disconnect", userId);
+        }
+    }
 
     @MessageMapping("/subscribe/room")
     public void subscribeToRoom(@Payload SubscribeRequest request, Principal principal, SimpMessageHeaderAccessor headerAccessor) {

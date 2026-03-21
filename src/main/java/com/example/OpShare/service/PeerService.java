@@ -4,12 +4,14 @@ import com.example.OpShare.dto.PeerResponse;
 import com.example.OpShare.dto.UpdatePeerRequest;
 import com.example.OpShare.entity.Peer;
 import com.example.OpShare.repository.peerRepository;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -72,6 +74,29 @@ public class PeerService {
 
     public boolean existsByContactNumber(String contactNumber) {
         return peerRepository.existsByContactNumber(contactNumber);
+    }
+
+    @Transactional
+    public void setInactive(Long peerId) {
+        peerRepository.findById(peerId).ifPresent(peer -> {
+            peer.setActive(false);
+            peer.setUpdatedAt(LocalDateTime.now());
+            peerRepository.save(peer);
+        });
+    }
+
+    public List<PeerResponse> getActivePeersByIp(String ip) {
+        return peerRepository.findByIpAndActiveTrue(ip).stream()
+                .map(peer -> toPeerResponse(peer, null))
+                .toList();
+    }
+
+    public String resolveClientIp(HttpServletRequest request) {
+        String forwarded = request.getHeader("X-Forwarded-For");
+        if (forwarded != null && !forwarded.isBlank()) {
+            return forwarded.split(",")[0].trim();
+        }
+        return request.getRemoteAddr();
     }
 
     private PeerResponse toPeerResponse(Peer peer, String message) {

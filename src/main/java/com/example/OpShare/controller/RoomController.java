@@ -10,6 +10,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.security.Principal;
+import java.util.Map;
 import java.util.Set;
 
 @RestController
@@ -54,5 +55,16 @@ public class RoomController {
         log.error("Received request to get peers for room {}", roomId);
         Set<String> peers = roomService.getRoomPeers(roomId);
         return ResponseEntity.ok(peers);
+    }
+
+    @PostMapping("/{roomId}/invite/{peerId}")
+    public ResponseEntity<Map<String, String>> invitePeer(
+            @PathVariable Long roomId,
+            @PathVariable Long peerId,
+            Principal principal) {
+        log.info("Peer {} inviting peer {} to room {}", principal.getName(), peerId, roomId);
+        Long inviterId = Long.parseLong(principal.getName());
+        roomService.invitePeer(roomId, inviterId, peerId);
+        return ResponseEntity.ok(Map.of("message", "Invite sent"));
     }
 }

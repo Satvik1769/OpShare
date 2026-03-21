@@ -3,6 +3,7 @@ package com.example.OpShare.controller;
 import com.example.OpShare.dto.PeerResponse;
 import com.example.OpShare.dto.UpdatePeerRequest;
 import com.example.OpShare.service.PeerService;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -10,6 +11,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.security.Principal;
+import java.util.List;
 import java.util.Map;
 
 @RestController
@@ -65,5 +67,13 @@ public class PeerController {
     public ResponseEntity<Map<String, Boolean>> checkContactNumber(@PathVariable String contactNumber) {
         boolean exists = peerService.existsByContactNumber(contactNumber);
         return ResponseEntity.ok(Map.of("exists", exists));
+    }
+
+    @GetMapping("/same-network")
+    public ResponseEntity<List<PeerResponse>> getActivePeersOnSameNetwork(HttpServletRequest request) {
+        String ip = peerService.resolveClientIp(request);
+        log.info("Fetching active peers for IP: {}", ip);
+        List<PeerResponse> peers = peerService.getActivePeersByIp(ip);
+        return ResponseEntity.ok(peers);
     }
 }

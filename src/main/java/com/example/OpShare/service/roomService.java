@@ -190,4 +190,31 @@ public class roomService {
         String redisKey = ROOM_PEERS_KEY_PREFIX + roomId;
         return redisTemplate.opsForSet().members(redisKey);
     }
+
+    public void invitePeer(Long roomId, Long inviterId, Long targetPeerId) {
+        Room room = roomRepository.findById(roomId)
+                .orElseThrow(() -> new RuntimeException("Room not found with ID: " + roomId));
+
+        if (!room.isActive()) {
+            throw new RuntimeException("Room is no longer active");
+        }
+
+        Peer inviter = peerRepository.findById(inviterId)
+                .orElseThrow(() -> new RuntimeException("Inviter not found with ID: " + inviterId));
+
+        if (!peerRepository.existsById(targetPeerId)) {
+            throw new RuntimeException("Peer not found with ID: " + targetPeerId);
+        }
+
+        RoomEvent event = RoomEvent.builder()
+                .eventType("ROOM_INVITE")
+                .roomId(roomId)
+                .peerId(inviterId)
+                .peerName(inviter.getName())
+                .timestamp(LocalDateTime.now())
+                .build();
+
+        messagingTemplate.convertAndSendToUser(String.valueOf(targetPeerId), "/queue/room", event);
+        log.info("Sent ROOM_INVITE to peer {} for room {} by peer {}", targetPeerId, roomId, inviterId);
+    }
 }

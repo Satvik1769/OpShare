@@ -128,6 +128,7 @@ public class AuthService {
             peerDeviceLoginRepository.save(login);
         }
 
+        deactivatePeerIfNoActiveDevices(userId);
         log.error("Logout successful for user ID: {}", userId);
     }
 
@@ -142,6 +143,7 @@ public class AuthService {
             peerDeviceLoginRepository.save(device);
         });
 
+        deactivatePeer(userId);
         log.error("Logged out {} devices for user ID: {}", devices.size(), userId);
     }
 
@@ -172,6 +174,7 @@ public class AuthService {
         device.setAuthKey(null);
         peerDeviceLoginRepository.save(device);
 
+        deactivatePeerIfNoActiveDevices(userId);
         log.error("Logged out device ID: {} for user ID: {}", deviceLoginId, userId);
     }
 
@@ -190,6 +193,22 @@ public class AuthService {
 
         PeerDeviceLogin login = deviceLogin.get();
         return STATUS_ACTIVE.equals(login.getStatus()) && token.equals(login.getAuthKey());
+    }
+
+    private void deactivatePeerIfNoActiveDevices(Long userId) {
+        boolean hasActiveDevices = !peerDeviceLoginRepository.findByUserIdAndStatus(userId, STATUS_ACTIVE).isEmpty();
+        if (!hasActiveDevices) {
+            deactivatePeer(userId);
+        }
+    }
+
+    private void deactivatePeer(Long userId) {
+        peerRepository.findById(userId).ifPresent(peer -> {
+            peer.setActive(false);
+            peer.setUpdatedAt(LocalDateTime.now());
+            peerRepository.save(peer);
+            log.error("Peer {} marked inactive", userId);
+        });
     }
 
     private DeviceLoginResponse toDeviceLoginResponse(PeerDeviceLogin device) {
